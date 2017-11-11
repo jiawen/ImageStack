@@ -1795,8 +1795,9 @@ void PatchPCA3D::parse(vector<string> args) {
 Image PatchPCA3D::apply(Image im, float sigma, int newChannels) {
 
     int patchSize = ((int)(sigma*6+1)) | 1;
+    int patchSizeT = 1;
 
-    printf("Using %dx%dx%d patches\n", patchSize, patchSize, patchSize);
+    printf("Using %dx%dx%d patches\n", patchSize, patchSize, patchSizeT);
 
     vector<float> mask(patchSize);
     float sum = 0;
@@ -1809,22 +1810,26 @@ Image PatchPCA3D::apply(Image im, float sigma, int newChannels) {
     for (int i = 0; i < patchSize; i++) { mask[i] /= sum; }
     printf("\n");
 
-    vector<float> vec(patchSize*patchSize*patchSize*im.channels);
+    vector<float> vec(patchSize*patchSize*patchSizeT*im.channels);
 
-    Eigenvectors e(patchSize*patchSize*patchSize*im.channels, newChannels);
+    printf("Setting up Eigenvectors.\n");
+    printf("im.frames = %d\n", im.frames);
+    printf("patchSizeT = %d, patchSizeT/2 = %d\n", patchSizeT, patchSizeT / 2);
+    printf("newChannels = %d\n", newChannels);
+    Eigenvectors e(patchSize*patchSize*patchSizeT*im.channels, newChannels);
     for (int iter = 0; iter < min(1000, im.width*im.height*im.frames); iter++) {
-        int t = randomInt(patchSize/2, im.frames-1-patchSize/2);
+        int t = randomInt(patchSizeT/2, im.frames-1-patchSizeT/2);
         int x = randomInt(patchSize/2, im.width-1-patchSize/2);
         int y = randomInt(patchSize/2, im.height-1-patchSize/2);
         int j = 0;
-        for (int dt = -patchSize/2; dt <= patchSize/2; dt++) {
+        for (int dt = -patchSizeT/2; dt <= patchSizeT/2; dt++) {
             for (int dy = -patchSize/2; dy <= patchSize/2; dy++) {
                 for (int dx = -patchSize/2; dx <= patchSize/2; dx++) {
                     for (int c = 0; c < im.channels; c++) {
                         vec[j] = (mask[dx+patchSize/2]*
                                   mask[dy+patchSize/2]*
-                                  mask[dt+patchSize/2]*
-                                  im(x+dx, y+dy, t+dy, c));
+                                  //mask[dt+patchSizeT/2]*  // mask T = 1.
+                                  im(x+dx, y+dy, t+dt, c));
                         j++;
                     }
                 }
@@ -1833,14 +1838,18 @@ Image PatchPCA3D::apply(Image im, float sigma, int newChannels) {
         e.add(&vec[0]);
     }
 
+    printf("Calling e.compute.\n");
     e.compute();
+    printf("Done calling e.compute.\n");
 
-    Image filters(patchSize, patchSize, patchSize, im.channels * newChannels);
+    Image filters(patchSize, patchSize, patchSizeT, im.channels * newChannels);
 
+    printf("Setting up filters.\n");
     for (int i = 0; i < newChannels; i++) {
+        printf("Getting eigenvector %d\n", i);
         e.getEigenvector(i, &vec[0]);
         int j = 0;
-        for (int t = 0; t < patchSize; t++) {
+        for (int t = 0; t < patchSizeT; t++) {
             for (int y = 0; y < patchSize; y++) {
                 for (int x = 0; x < patchSize; x++) {
                     for (int c = 0; c < im.channels; c++) {
@@ -1851,6 +1860,7 @@ Image PatchPCA3D::apply(Image im, float sigma, int newChannels) {
             }
         }
     }
+    printf("Done, returning filters.\n");
 
     return filters;
 }
@@ -1874,7 +1884,7 @@ bool Orthonormalize::test() {
 
     Noise::apply(a, 0, 1);
 
-    Orthonormalize::apply(a);    
+    Orthonormalize::apply(a);
     double s00 = Reduce::sum(a.channel(0) * a.channel(0));
     double s01 = Reduce::sum(a.channel(0) * a.channel(1));
     double s02 = Reduce::sum(a.channel(0) * a.channel(2));
@@ -1883,10 +1893,10 @@ bool Orthonormalize::test() {
     double s22 = Reduce::sum(a.channel(2) * a.channel(2));
 
     return (nearlyEqual(s00, 1) &&
-            nearlyEqual(s01, 0) && 
+            nearlyEqual(s01, 0) &&
             nearlyEqual(s02, 0) &&
             nearlyEqual(s11, 1) &&
-            nearlyEqual(s12, 0) && 
+            nearlyEqual(s12, 0) &&
             nearlyEqual(s22, 1));
 }
 

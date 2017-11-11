@@ -1,3 +1,4 @@
+#BIN_CCFLAGS = -std=gnu++0x -g
 BIN_CCFLAGS = -std=gnu++0x -O3 -Winvalid-pch -Wshadow -Wall -Werror -Wno-uninitialized -pipe -march=native -ffast-math -fopenmp -rdynamic
 
 

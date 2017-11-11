@@ -679,7 +679,7 @@ void JointBilateral::apply(Image im, Image ref,
 
 
 void Bilateral::help() {
-    pprintf("-bilateral blurs the top image in the second without crossing"
+    pprintf("-bilateral blurs the top image in the stack without crossing"
             " boundaries. It takes up to five arguments: the color standard"
             " deviation of the filter, the standard deviations in width, height,"
             " and frames, and the method to use (see -gausstransform for a"
@@ -888,6 +888,8 @@ void NLMeans3D::help() {
             " for the joint bilateral filter (see -gausstransform).\n"
             "\n"
             "Usage: ImageStack -load volume.tmp -nlmeans3d 1.0 6 50 0.02\n");
+    // Parameters:
+    // <patch size (as a Gaussian sigma)> <number of dimensions = 6> <search radius as a spatial Gaussian sigma> <patch-space sigma in d dimensions>
 }
 
 bool NLMeans3D::test() {
@@ -936,8 +938,11 @@ void NLMeans3D::apply(Image image, float patchSize, int dimensions,
                       GaussTransform::Method method) {
 
     Image filters = PatchPCA3D::apply(image, patchSize, dimensions);
+    printf("NLMeans3D: image has shape: %d, %d, %d, %d\n", image.width, image.height, image.frames, image.channels);
+    printf("NLMeans3D: filters has shape: %d, %d, %d, %d\n", filters.width, filters.height, filters.frames, filters.channels);
     Image pca = Convolve::apply(image, filters, Convolve::Zero, Multiply::Inner);
-    JointBilateral::apply(image, pca, spatialSigma, spatialSigma, INF, patchSigma);
+    printf("NLMeans3D: pca-ed has shape: %d, %d, %d, %d\n", pca.width, pca.height, pca.frames, pca.channels);
+    JointBilateral::apply(image, pca, spatialSigma, spatialSigma, INF, patchSigma, method);
 };
 
 

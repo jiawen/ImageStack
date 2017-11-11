@@ -17,7 +17,7 @@ void help() {
     pprintf(".tmp files. This format is used to save temporary image data, and to"
             " interoperate with other programs that can load or save raw binary"
             " data. The format supports any number of frames and channels."
-            " A .tmp file starts with a header that containining five 32-bit"
+            " A .tmp file starts with a header that containing five 32-bit"
             " integer values which represents width, height, frames, channels and"
             " type. Image data follows.\n"
             "types:\n"
